@@ -1,45 +1,218 @@
-```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Website</title>
+
+    <title>Exercise040</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-    <header>
-        <h1>YOUR NAME</h1>
-        <p>Developer / Data Scientist</p>
+    <header class="header">
+        <nav class="nav">
+            <a href="#" class="logo">exercise040</a>
+
+            <div class="nav-links">
+                <a href="#about">About</a>
+                <a href="#projects">Projects</a>
+                <a href="#games">Games</a>
+                <a href="#notes">Notes</a>
+            </div>
+        </nav>
     </header>
 
+
     <main>
-        <section>
-            <h2>About</h2>
-            <p>여기에 자기소개를 작성합니다.</p>
+
+        <!-- Hero -->
+        <section class="hero">
+            <p class="eyebrow">DEVELOPER / DATA SCIENTIST</p>
+
+            <h1>
+                Building,<br>
+                experimenting,<br>
+                learning.
+            </h1>
+
+            <p class="hero-description">
+                Exploring machine learning, reinforcement learning,
+                quantitative research, and software development.
+            </p>
+
+            <div class="hero-links">
+                <a href="https://github.com/exercise040" target="_blank">
+                    GitHub ↗
+                </a>
+
+                <a href="#projects">
+                    View Projects ↓
+                </a>
+            </div>
         </section>
 
-        <section>
-            <h2>Projects</h2>
-            <p>프로젝트를 추가할 예정입니다.</p>
+
+        <!-- About -->
+        <section id="about" class="section">
+
+            <div class="section-title">
+                <span>01</span>
+                <h2>About</h2>
+            </div>
+
+            <div class="section-content">
+                <p>
+                    안녕하세요.
+                </p>
+
+                <p>
+                    머신러닝, 데이터 분석, 강화학습,
+                    퀀트 연구와 소프트웨어 개발에 관심을 가지고
+                    여러 프로젝트를 진행하고 있습니다.
+                </p>
+
+                <p>
+                    이 사이트에는 제가 진행한 프로젝트와
+                    실험, 개발 기록을 정리할 예정입니다.
+                </p>
+            </div>
+
         </section>
 
-        <section>
-            <h2>Games</h2>
-            <p>게임을 추가할 예정입니다.</p>
+
+        <!-- Projects -->
+        <section id="projects" class="section">
+
+            <div class="section-title">
+                <span>02</span>
+                <h2>Projects</h2>
+            </div>
+
+            <div class="project-grid">
+
+                <a href="#" class="project-card">
+                    <span class="project-number">01</span>
+
+                    <h3>MABe</h3>
+
+                    <p>
+                        Mouse behavior detection
+                        and machine learning.
+                    </p>
+
+                    <span class="project-arrow">↗</span>
+                </a>
+
+
+                <a href="#" class="project-card">
+                    <span class="project-number">02</span>
+
+                    <h3>Reinforcement Learning</h3>
+
+                    <p>
+                        Game agents, strategy,
+                        and reinforcement learning experiments.
+                    </p>
+
+                    <span class="project-arrow">↗</span>
+                </a>
+
+
+                <a href="#" class="project-card">
+                    <span class="project-number">03</span>
+
+                    <h3>Quant</h3>
+
+                    <p>
+                        Quantitative research,
+                        alpha research and systematic strategies.
+                    </p>
+
+                    <span class="project-arrow">↗</span>
+                </a>
+
+
+                <a href="#" class="project-card">
+                    <span class="project-number">04</span>
+
+                    <h3>More</h3>
+
+                    <p>
+                        Other experiments and projects.
+                    </p>
+
+                    <span class="project-arrow">↗</span>
+                </a>
+
+            </div>
+
         </section>
 
-        <section>
-            <h2>Notes</h2>
-            <p>개발 기록과 글을 추가할 예정입니다.</p>
+
+        <!-- Games -->
+        <section id="games" class="section">
+
+            <div class="section-title">
+                <span>03</span>
+                <h2>Games</h2>
+            </div>
+
+            <div class="empty-section">
+                <p>
+                    Games are currently in development.
+                </p>
+
+                <span>Coming soon.</span>
+            </div>
+
         </section>
+
+
+        <!-- Notes -->
+        <section id="notes" class="section">
+
+            <div class="section-title">
+                <span>04</span>
+                <h2>Notes</h2>
+            </div>
+
+            <div class="empty-section">
+                <p>
+                    Development notes, experiments,
+                    and things I learn.
+                </p>
+
+                <span>Coming soon.</span>
+            </div>
+
+        </section>
+
     </main>
 
-    <footer>
-        <p>GitHub · Contact</p>
+
+    <footer class="footer">
+
+        <div>
+            <strong>exercise040</strong>
+        </div>
+
+        <div class="footer-links">
+            <a href="https://github.com/exercise040" target="_blank">
+                GitHub
+            </a>
+
+            <a href="mailto:your-email@example.com">
+                Contact
+            </a>
+        </div>
+
+        <p>
+            © 2026 exercise040
+        </p>
+
     </footer>
 
 </body>
 </html>
-```
