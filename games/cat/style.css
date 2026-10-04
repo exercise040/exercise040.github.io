@@ -1,0 +1,247 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    background: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
+}
+
+
+/* 전체 게임 */
+
+#game {
+    width: min(1100px, 100%);
+    margin: 0 auto;
+    padding: 20px;
+}
+
+
+/* 상단 */
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 15px;
+}
+
+.game-header a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.game-status {
+    font-size: 12px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+}
+
+
+/* 게임 월드 */
+
+#world {
+    position: relative;
+
+    width: 100%;
+    height: 650px;
+
+    overflow: hidden;
+
+    border: 1px solid #333;
+
+    background:
+        linear-gradient(
+            #171717 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            #171717 1px,
+            transparent 1px
+        );
+
+    background-size: 40px 40px;
+}
+
+
+/* 제목 */
+
+.room-title {
+    position: absolute;
+
+    top: 25px;
+    left: 30px;
+
+    font-size: 13px;
+    letter-spacing: 4px;
+
+    opacity: 0.35;
+
+    pointer-events: none;
+}
+
+
+/* 고양이 */
+
+#cat {
+    position: absolute;
+
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 32px;
+
+    user-select: none;
+    pointer-events: none;
+
+    z-index: 10;
+
+    transform: translate(-50%, -50%);
+}
+
+
+/* 문 */
+
+.door {
+    position: absolute;
+
+    width: 90px;
+    height: 130px;
+
+    transform: translate(-50%, -50%);
+
+    cursor: pointer;
+
+    z-index: 5;
+}
+
+.door-body {
+    width: 100%;
+    height: 100%;
+
+    border: 2px solid #777;
+
+    background: #222;
+
+    transition:
+        background 0.2s,
+        border-color 0.2s,
+        transform 0.2s;
+}
+
+.door span {
+    position: absolute;
+
+    left: 50%;
+    bottom: -25px;
+
+    transform: translateX(-50%);
+
+    white-space: nowrap;
+
+    font-size: 10px;
+    letter-spacing: 2px;
+
+    opacity: 0.5;
+}
+
+
+/* 고양이가 가까워졌을 때 */
+
+.door.near .door-body {
+    border-color: white;
+    background: #333;
+
+    transform: scale(1.04);
+}
+
+
+/* 이벤트 */
+
+#event-box {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: min(500px, 80%);
+
+    transform: translate(-50%, -50%);
+
+    padding: 30px;
+
+    background: rgba(15, 15, 15, 0.96);
+
+    border: 1px solid #777;
+
+    z-index: 100;
+}
+
+#event-content {
+    line-height: 1.7;
+    margin-bottom: 25px;
+}
+
+#close-event {
+    padding: 8px 14px;
+
+    border: 1px solid #666;
+
+    background: transparent;
+    color: white;
+
+    cursor: pointer;
+}
+
+#close-event:hover {
+    background: #333;
+}
+
+.hidden {
+    display: none;
+}
+
+
+/* 하단 */
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+
+    padding-top: 12px;
+
+    font-size: 11px;
+    letter-spacing: 1px;
+
+    opacity: 0.4;
+}
+
+
+@media (max-width: 600px) {
+
+    #world {
+        height: 500px;
+    }
+
+    .controls {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+}

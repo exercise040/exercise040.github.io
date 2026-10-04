@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cat's Room | exercise040</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main id="game">
+
+        <header class="game-header">
+            <a href="../../index.html">exercise040</a>
+
+            <div class="game-status">
+                <span id="status">EXPLORE</span>
+            </div>
+        </header>
+
+
+        <section id="world">
+
+            <!-- 장식 -->
+            <div class="room-title">
+                CAT'S ROOM
+            </div>
+
+
+            <!-- 고양이 -->
+            <div id="cat" aria-label="cat">
+                🐈
+            </div>
+
+
+            <!-- 문 1 -->
+            <div
+                class="door"
+                data-event="about"
+                style="left: 15%; top: 70%;"
+            >
+                <div class="door-body"></div>
+                <span>ABOUT</span>
+            </div>
+
+
+            <!-- 문 2 -->
+            <div
+                class="door"
+                data-event="projects"
+                style="left: 45%; top: 25%;"
+            >
+                <div class="door-body"></div>
+                <span>PROJECTS</span>
+            </div>
+
+
+            <!-- 문 3 -->
+            <div
+                class="door"
+                data-event="secret"
+                style="left: 80%; top: 65%;"
+            >
+                <div class="door-body"></div>
+                <span>???</span>
+            </div>
+
+
+            <!-- 이벤트 메시지 -->
+            <div id="event-box" class="hidden">
+
+                <div id="event-content"></div>
+
+                <button id="close-event">
+                    CLOSE
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <footer class="controls">
+            <span>WASD / ARROW KEYS</span>
+            <span>Find the doors.</span>
+        </footer>
+
+    </main>
+
+    <script src="game.js"></script>
+
+</body>
+</html>
