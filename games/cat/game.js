@@ -1,8 +1,8 @@
 /*
  * exercise040 Cat
  *
- * The artwork is the original oneko.gif sprite sheet.
- * Input is changed to direct WASD movement.
+ * Original oneko.gif artwork.
+ * Mouse-tracking movement with a deliberately slower animation cadence.
  */
 
 const world = document.getElementById("world");
@@ -14,23 +14,27 @@ const eventBox = document.getElementById("event-box");
 const eventContent = document.getElementById("event-content");
 const closeEvent = document.getElementById("close-event");
 
-const keys = new Set();
-
 const cat = {
   x: 100,
   y: 120,
-  speed: 5.5,
+
+  // Distance moved per animation frame toward the cursor.
+  speed: 3.2,
+
   direction: "S"
 };
 
+let mouseX = 100;
+let mouseY = 120;
+let mouseInside = false;
+
 let nearestDoor = null;
 let lastTime = performance.now();
-let walkTick = 0;
 
-/*
- * oneko's sprite sheet is a 256x128 image made of 32x32 cells.
- * The positions below select the original directional frames.
- */
+let walkElapsed = 0;
+let currentFrame = 0;
+
+// Original oneko sprite-sheet positions.
 const sprites = {
   idle: [[-3, -3]],
   N: [[-1, -2], [-1, -3]],
@@ -43,77 +47,86 @@ const sprites = {
   NW: [[-1, 0], [-1, -1]]
 };
 
-window.addEventListener("keydown", (event) => {
-  const key = event.key.toLowerCase();
+document.addEventListener("mousemove", (event) => {
+  const rect = world.getBoundingClientRect();
 
-  if (["w", "a", "s", "d", "enter"].includes(key)) {
-    event.preventDefault();
-  }
-
-  keys.add(key);
-
-  if (key === "enter") {
-    enterNearestDoor();
-  }
+  mouseX = event.clientX - rect.left;
+  mouseY = event.clientY - rect.top;
+  mouseInside = true;
 });
 
-window.addEventListener("keyup", (event) => {
-  keys.delete(event.key.toLowerCase());
+world.addEventListener("mouseleave", () => {
+  mouseInside = false;
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    enterNearestDoor();
+  }
 });
 
 closeEvent.addEventListener("click", () => {
   eventBox.hidden = true;
 });
 
-function readInput() {
-  let dx = 0;
-  let dy = 0;
-
-  if (keys.has("a")) dx -= 1;
-  if (keys.has("d")) dx += 1;
-  if (keys.has("w")) dy -= 1;
-  if (keys.has("s")) dy += 1;
-
-  return { dx, dy };
-}
-
 function updateMovement(dt) {
-  const { dx: rawX, dy: rawY } = readInput();
-
-  if (rawX === 0 && rawY === 0) {
+  if (!mouseInside) {
     setSprite("idle", 0);
     statusText.textContent = nearestDoor ? "ENTER" : "IDLE";
     return;
   }
 
-  const length = Math.hypot(rawX, rawY);
-  const dx = rawX / length;
-  const dy = rawY / length;
+  const dx = mouseX - cat.x;
+  const dy = mouseY - cat.y;
+  const distance = Math.hypot(dx, dy);
 
-  cat.x += dx * cat.speed * dt;
-  cat.y += dy * cat.speed * dt;
+  // Stop close to the cursor instead of sitting directly underneath it.
+  const stopDistance = 8;
+
+  if (distance <= stopDistance) {
+    setSprite("idle", 0);
+    statusText.textContent = nearestDoor ? "ENTER" : "IDLE";
+    return;
+  }
+
+  const nx = dx / distance;
+  const ny = dy / distance;
+
+  /*
+   * Frame-rate independent movement.
+   * The 0.06 factor makes the cat noticeably calmer than the
+   * previous WASD version.
+   */
+  const step = Math.min(distance - stopDistance, cat.speed * dt);
+
+  cat.x += nx * step;
+  cat.y += ny * step;
 
   const half = 16;
-
   cat.x = Math.max(half, Math.min(world.clientWidth - half, cat.x));
   cat.y = Math.max(half, Math.min(world.clientHeight - half, cat.y));
 
-  if (dx > 0 && dy < 0) cat.direction = "NE";
-  else if (dx > 0 && dy > 0) cat.direction = "SE";
-  else if (dx < 0 && dy < 0) cat.direction = "NW";
-  else if (dx < 0 && dy > 0) cat.direction = "SW";
-  else if (dx > 0) cat.direction = "E";
-  else if (dx < 0) cat.direction = "W";
-  else if (dy < 0) cat.direction = "N";
+  if (nx > 0 && ny < -0.35) cat.direction = "NE";
+  else if (nx > 0 && ny > 0.35) cat.direction = "SE";
+  else if (nx < 0 && ny < -0.35) cat.direction = "NW";
+  else if (nx < 0 && ny > 0.35) cat.direction = "SW";
+  else if (nx > 0) cat.direction = "E";
+  else if (nx < 0) cat.direction = "W";
+  else if (ny < 0) cat.direction = "N";
   else cat.direction = "S";
 
-  walkTick += dt;
+  /*
+   * Slow sprite animation:
+   * change frame roughly every 120 ms instead of every render frame.
+   */
+  walkElapsed += dt * 16.6667;
 
-  const frames = sprites[cat.direction];
-  const frame = Math.floor(walkTick * 12) % frames.length;
+  if (walkElapsed >= 120) {
+    walkElapsed -= 120;
+    currentFrame++;
+  }
 
-  setSprite(cat.direction, frame);
-
+  setSprite(cat.direction, currentFrame);
   statusText.textContent = nearestDoor ? "ENTER" : "EXPLORE";
 }
 
@@ -129,7 +142,7 @@ function render() {
   neko.style.top = `${cat.y - 16}px`;
 }
 
-function doorCenter(door) {
+function getDoorCenter(door) {
   const worldRect = world.getBoundingClientRect();
   const rect = door.getBoundingClientRect();
 
@@ -141,21 +154,24 @@ function doorCenter(door) {
 
 function updateNearestDoor() {
   let closest = null;
-  let distance = Infinity;
+  let closestDistance = Infinity;
 
   for (const door of doors) {
     door.classList.remove("near");
 
-    const center = doorCenter(door);
-    const d = Math.hypot(cat.x - center.x, cat.y - center.y);
+    const center = getDoorCenter(door);
+    const distance = Math.hypot(
+      cat.x - center.x,
+      cat.y - center.y
+    );
 
-    if (d < distance) {
-      distance = d;
+    if (distance < closestDistance) {
+      closestDistance = distance;
       closest = door;
     }
   }
 
-  nearestDoor = distance <= 82 ? closest : null;
+  nearestDoor = closestDistance <= 82 ? closest : null;
 
   if (nearestDoor) {
     nearestDoor.classList.add("near");
@@ -165,28 +181,28 @@ function updateNearestDoor() {
 function enterNearestDoor() {
   if (!nearestDoor) return;
 
-  switch (nearestDoor.dataset.event) {
-    case "about":
-      showEvent(
-        "ABOUT",
-        "The cat found the room where exercise040 begins."
-      );
-      break;
+  const type = nearestDoor.dataset.event;
 
-    case "projects":
-      showEvent(
-        "PROJECTS",
-        "Behind this door are experiments, machine learning, quantitative research, and software projects.",
-        "../../index.html#projects"
-      );
-      break;
+  if (type === "about") {
+    showEvent(
+      "ABOUT",
+      "The cat found the room where exercise040 begins."
+    );
+  }
 
-    case "secret":
-      showEvent(
-        "???",
-        "You found something that was not supposed to be here."
-      );
-      break;
+  if (type === "projects") {
+    showEvent(
+      "PROJECTS",
+      "Behind this door are experiments, machine learning, quantitative research, and software projects.",
+      "../../index.html#projects"
+    );
+  }
+
+  if (type === "secret") {
+    showEvent(
+      "???",
+      "You found something that was not supposed to be here."
+    );
   }
 }
 

@@ -69,6 +69,7 @@ header a {
   z-index: 2;
   font-size: 11px;
   letter-spacing: .2em;
+  pointer-events: none;
 }
 
 .room-label small {
@@ -79,10 +80,6 @@ header a {
   letter-spacing: .12em;
 }
 
-/*
-  The uploaded oneko.gif is the actual sprite sheet.
-  Each sprite cell is 32x32.
-*/
 #oneko {
   position: absolute;
   width: 32px;
@@ -158,7 +155,7 @@ header a {
   font-size: 22px;
 }
 
-/* Event box */
+/* Event */
 #event-box {
   position: absolute;
   left: 50%;
