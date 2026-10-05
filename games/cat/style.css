@@ -38,9 +38,9 @@ header a {
 }
 
 #status {
-  color: #777;
+  color: #aaa;
   font-size: 10px;
-  letter-spacing: .18em;
+  letter-spacing: .12em;
 }
 
 #world {
@@ -80,12 +80,14 @@ header a {
   letter-spacing: .12em;
 }
 
+/*
+ * Original oneko sprite sheet.
+ * 256x128 = 8 columns x 4 rows of 32x32 sprites.
+ */
 #oneko {
   position: absolute;
   width: 32px;
   height: 32px;
-  left: 100px;
-  top: 120px;
   z-index: 10;
   pointer-events: none;
   user-select: none;
@@ -211,23 +213,29 @@ header a {
 }
 
 footer {
-  height: 40px;
+  height: 42px;
   padding: 0 28px;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
   border-top: 1px solid #242424;
   color: #555;
   font-size: 8px;
-  letter-spacing: .14em;
+  letter-spacing: .12em;
+}
+
+#cat-state {
+  color: #aaa;
 }
 
 @media (max-width: 600px) {
-  header {
-    padding: 0 16px;
+  header,
+  footer {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   footer {
-    padding: 0 16px;
+    gap: 12px;
   }
 }
