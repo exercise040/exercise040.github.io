@@ -1,340 +1,200 @@
 const world = document.getElementById("world");
 const cat = document.getElementById("cat");
-
-const status = document.getElementById("status");
+const statusText = document.getElementById("status");
+const doors = [...document.querySelectorAll(".door")];
 
 const eventBox = document.getElementById("event-box");
 const eventContent = document.getElementById("event-content");
 const closeEvent = document.getElementById("close-event");
 
-const doors = [...document.querySelectorAll(".door")];
-
-
-// -------------------------
-// 고양이 상태
-// -------------------------
+const keys = {};
 
 const catState = {
     x: 100,
-    y: 100,
-    speed: 3
+    y: 120,
+    speed: 3,
+    direction: 1
 };
 
-
-// -------------------------
-// 키 상태
-// -------------------------
-
-const keys = {};
+let nearestDoor = null;
 
 window.addEventListener("keydown", (event) => {
-
     keys[event.key.toLowerCase()] = true;
 
-});
+    if (
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight" ||
+        event.key === " "
+    ) {
+        event.preventDefault();
+    }
 
+    if (event.key === "Enter") {
+        enterNearestDoor();
+    }
+});
 
 window.addEventListener("keyup", (event) => {
-
     keys[event.key.toLowerCase()] = false;
-
 });
 
+closeEvent.addEventListener("click", () => {
+    eventBox.classList.add("hidden");
+});
 
-// -------------------------
-// 이벤트 상태
-// -------------------------
+function moveCat() {
+    let dx = 0;
+    let dy = 0;
 
-let eventOpen = false;
+    if (keys["arrowleft"] || keys["a"]) dx -= 1;
+    if (keys["arrowright"] || keys["d"]) dx += 1;
+    if (keys["arrowup"] || keys["w"]) dy -= 1;
+    if (keys["arrowdown"] || keys["s"]) dy += 1;
 
+    const moving = dx !== 0 || dy !== 0;
 
-// -------------------------
-// 고양이 위치
-// -------------------------
-
-function updateCatPosition() {
-
-    if (eventOpen) {
+    if (!moving) {
+        cat.classList.remove("walking");
         return;
     }
 
+    cat.classList.add("walking");
 
-    if (
-        keys["arrowleft"] ||
-        keys["a"]
-    ) {
-        catState.x -= catState.speed;
+    // 대각선 이동이 더 빨라지지 않도록 정규화
+    const length = Math.hypot(dx, dy);
+
+    dx /= length;
+    dy /= length;
+
+    catState.x += dx * catState.speed;
+    catState.y += dy * catState.speed;
+
+    if (dx !== 0) {
+        catState.direction = dx > 0 ? 1 : -1;
     }
 
+    const worldWidth = world.clientWidth;
+    const worldHeight = world.clientHeight;
 
-    if (
-        keys["arrowright"] ||
-        keys["d"]
-    ) {
-        catState.x += catState.speed;
-    }
+    const marginX = 45;
+    const marginY = 50;
 
+    catState.x = Math.max(marginX, Math.min(worldWidth - marginX, catState.x));
+    catState.y = Math.max(marginY, Math.min(worldHeight - marginY, catState.y));
+}
 
-    if (
-        keys["arrowup"] ||
-        keys["w"]
-    ) {
-        catState.y -= catState.speed;
-    }
-
-
-    if (
-        keys["arrowdown"] ||
-        keys["s"]
-    ) {
-        catState.y += catState.speed;
-    }
-
-
-    // 월드 밖으로 나가지 못하게 한다.
-
-    const width = world.clientWidth;
-    const height = world.clientHeight;
-
-    catState.x = Math.max(
-        20,
-        Math.min(width - 20, catState.x)
-    );
-
-    catState.y = Math.max(
-        20,
-        Math.min(height - 20, catState.y)
-    );
-
-
+function updateCatVisual() {
     cat.style.left = `${catState.x}px`;
     cat.style.top = `${catState.y}px`;
+
+    const scale = catState.direction === 1 ? 1 : -1;
+    cat.style.transform = `translate(-50%, -50%) scaleX(${scale})`;
 }
 
+function getDoorCenter(door) {
+    const worldRect = world.getBoundingClientRect();
+    const rect = door.getBoundingClientRect();
 
-// -------------------------
-// 충돌 검사
-// -------------------------
+    return {
+        x: rect.left - worldRect.left + rect.width / 2,
+        y: rect.top - worldRect.top + rect.height / 2
+    };
+}
 
-function checkDoorCollision() {
+function findNearestDoor() {
+    let closest = null;
+    let closestDistance = Infinity;
 
-    let touchingDoor = null;
+    for (const door of doors) {
+        const center = getDoorCenter(door);
 
-
-    doors.forEach((door) => {
-
-        const rect = door.getBoundingClientRect();
-        const worldRect = world.getBoundingClientRect();
-
-
-        const doorX =
-            rect.left -
-            worldRect.left +
-            rect.width / 2;
-
-        const doorY =
-            rect.top -
-            worldRect.top +
-            rect.height / 2;
-
-
-        const distance = Math.sqrt(
-            Math.pow(catState.x - doorX, 2) +
-            Math.pow(catState.y - doorY, 2)
+        const distance = Math.hypot(
+            catState.x - center.x,
+            catState.y - center.y
         );
 
-
-        if (distance < 70) {
-
-            door.classList.add("near");
-
-            touchingDoor = door;
-
-        } else {
-
-            door.classList.remove("near");
-
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closest = door;
         }
-
-    });
-
-
-    if (touchingDoor) {
-
-        status.textContent = "DOOR";
-
-    } else {
-
-        status.textContent = "EXPLORE";
-
     }
 
+    for (const door of doors) {
+        door.classList.remove("near");
+    }
 
-    return touchingDoor;
+    if (closest && closestDistance < 100) {
+        closest.classList.add("near");
+        return closest;
+    }
+
+    return null;
 }
 
+function updateStatus() {
+    nearestDoor = findNearestDoor();
 
-// -------------------------
-// 문 이벤트
-// -------------------------
+    if (nearestDoor) {
+        statusText.textContent = "ENTER";
+    } else {
+        statusText.textContent = "EXPLORE";
+    }
+}
 
-function triggerEvent(eventName) {
+function enterNearestDoor() {
+    if (!nearestDoor) return;
 
-    eventOpen = true;
+    const eventType = nearestDoor.dataset.event;
 
-    switch (eventName) {
+    triggerEvent(eventType);
+}
 
-        case "about":
-
-            eventContent.innerHTML = `
-                <h2>Hello.</h2>
-
-                <p>
-                    The cat found the About room.
-                </p>
-
-                <p>
-                    Maybe this website is not as
-                    ordinary as it looks.
-                </p>
-            `;
-
-            break;
-
-
-        case "projects":
-
-            eventContent.innerHTML = `
-                <h2>Projects</h2>
-
-                <p>
-                    The cat discovered the
-                    project room.
-                </p>
-
-                <p>
-                    <a
-                        href="../../index.html#projects"
-                        style="color:white;"
-                    >
-                        View Projects →
-                    </a>
-                </p>
-            `;
-
-            break;
-
-
-        case "secret":
-
-            eventContent.innerHTML = `
-                <h2>???</h2>
-
-                <p>
-                    You found something that
-                    was not supposed to be here.
-                </p>
-
-                <p>
-                    The cat looks at you.
-                </p>
-
-                <p>
-                    🐈
-                </p>
-            `;
-
-            break;
-
+function triggerEvent(type) {
+    if (type === "about") {
+        eventContent.innerHTML = `
+            <h2 class="event-title">ABOUT</h2>
+            <p class="event-text">
+                The cat discovered the room where exercise040 begins.
+                Maybe there is more to this website than the page itself.
+            </p>
+        `;
     }
 
+    if (type === "projects") {
+        eventContent.innerHTML = `
+            <h2 class="event-title">PROJECTS</h2>
+            <p class="event-text">
+                Behind this door are experiments, machine learning,
+                quantitative research, and software projects.
+            </p>
+            <a class="event-link" href="../../index.html#projects">
+                OPEN PROJECTS →
+            </a>
+        `;
+    }
+
+    if (type === "secret") {
+        eventContent.innerHTML = `
+            <h2 class="event-title">???</h2>
+            <p class="event-text">
+                You found something that was not supposed to be here.
+                The cat stares at the door for a moment.
+            </p>
+        `;
+    }
 
     eventBox.classList.remove("hidden");
 }
 
-
-// -------------------------
-// 이벤트 닫기
-// -------------------------
-
-closeEvent.addEventListener("click", () => {
-
-    eventBox.classList.add("hidden");
-
-    eventOpen = false;
-
-});
-
-
-// -------------------------
-// 문 진입
-// -------------------------
-
-function checkForEntry() {
-
-    const door = checkDoorCollision();
-
-    if (!door) {
-        return;
-    }
-
-
-    /*
-     * 문에 가까워졌다고
-     * 바로 이벤트를 발생시키지 않고
-     *
-     * Enter 키를 눌렀을 때
-     * 들어가도록 한다.
-     */
-
-}
-
-
-// -------------------------
-// Enter 키
-// -------------------------
-
-window.addEventListener("keydown", (event) => {
-
-    if (event.key !== "Enter") {
-        return;
-    }
-
-
-    if (eventOpen) {
-        return;
-    }
-
-
-    const door = checkDoorCollision();
-
-
-    if (!door) {
-        return;
-    }
-
-
-    const eventName =
-        door.dataset.event;
-
-
-    triggerEvent(eventName);
-
-});
-
-
-// -------------------------
-// 게임 루프
-// -------------------------
-
 function gameLoop() {
-
-    updateCatPosition();
-
-    checkForEntry();
+    moveCat();
+    updateCatVisual();
+    updateStatus();
 
     requestAnimationFrame(gameLoop);
 }
 
-
+updateCatVisual();
 gameLoop();

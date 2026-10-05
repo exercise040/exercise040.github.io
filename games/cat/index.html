@@ -1,96 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Cat's Room | exercise040</title>
-
+    <title>Cat's Room — exercise040</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+    <header class="topbar">
+        <a href="../../index.html" class="logo">exercise040</a>
+        <div id="status">EXPLORE</div>
+    </header>
 
-    <main id="game">
+    <main id="world">
+        <div class="room-title">
+            <span>CAT'S ROOM</span>
+            <small>find the right door</small>
+        </div>
 
-        <header class="game-header">
-            <a href="../../index.html">exercise040</a>
+        <div id="cat" aria-label="black cat">
+            <div class="cat-shadow"></div>
+            <div class="cat-tail"></div>
 
-            <div class="game-status">
-                <span id="status">EXPLORE</span>
+            <div class="cat-body">
+                <div class="cat-leg back-leg"></div>
+                <div class="cat-leg front-leg"></div>
+
+                <div class="cat-head">
+                    <div class="ear left-ear"></div>
+                    <div class="ear right-ear"></div>
+                    <div class="eye left-eye"></div>
+                    <div class="eye right-eye"></div>
+                    <div class="nose"></div>
+                </div>
             </div>
-        </header>
+        </div>
 
-
-        <section id="world">
-
-            <!-- 장식 -->
-            <div class="room-title">
-                CAT'S ROOM
-            </div>
-
-
-            <!-- 고양이 -->
-            <div id="cat" aria-label="cat">
-                🐈
-            </div>
-
-
-            <!-- 문 1 -->
-            <div
-                class="door"
-                data-event="about"
-                style="left: 15%; top: 70%;"
-            >
-                <div class="door-body"></div>
+        <div class="door" data-event="about" style="left:18%; top:70%;">
+            <div class="door-frame">
+                <div class="door-panel"></div>
                 <span>ABOUT</span>
             </div>
+        </div>
 
-
-            <!-- 문 2 -->
-            <div
-                class="door"
-                data-event="projects"
-                style="left: 45%; top: 25%;"
-            >
-                <div class="door-body"></div>
+        <div class="door" data-event="projects" style="left:50%; top:24%;">
+            <div class="door-frame">
+                <div class="door-panel"></div>
                 <span>PROJECTS</span>
             </div>
+        </div>
 
-
-            <!-- 문 3 -->
-            <div
-                class="door"
-                data-event="secret"
-                style="left: 80%; top: 65%;"
-            >
-                <div class="door-body"></div>
-                <span>???</span>
+        <div class="door" data-event="secret" style="left:82%; top:70%;">
+            <div class="door-frame secret-door">
+                <div class="door-panel"></div>
+                <span>?</span>
             </div>
+        </div>
 
-
-            <!-- 이벤트 메시지 -->
-            <div id="event-box" class="hidden">
-
-                <div id="event-content"></div>
-
-                <button id="close-event">
-                    CLOSE
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <footer class="controls">
-            <span>WASD / ARROW KEYS</span>
-            <span>Find the doors.</span>
-        </footer>
-
+        <div id="event-box" class="hidden">
+            <button id="close-event" aria-label="close">×</button>
+            <div id="event-content"></div>
+        </div>
     </main>
 
-    <script src="game.js"></script>
+    <footer>
+        <span>WASD / ARROW KEYS — MOVE</span>
+        <span>ENTER — ENTER DOOR</span>
+    </footer>
 
+    <script src="game.js"></script>
 </body>
 </html>
