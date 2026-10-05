@@ -1,200 +1,216 @@
-const world = document.getElementById("world");
-const cat = document.getElementById("cat");
-const statusText = document.getElementById("status");
-const doors = [...document.querySelectorAll(".door")];
+/*
+ * exercise040 Cat
+ *
+ * The artwork is the original oneko.gif sprite sheet.
+ * Input is changed to direct WASD movement.
+ */
 
+const world = document.getElementById("world");
+const neko = document.getElementById("oneko");
+const statusText = document.getElementById("status");
+
+const doors = [...document.querySelectorAll(".door")];
 const eventBox = document.getElementById("event-box");
 const eventContent = document.getElementById("event-content");
 const closeEvent = document.getElementById("close-event");
 
-const keys = {};
+const keys = new Set();
 
-const catState = {
-    x: 100,
-    y: 120,
-    speed: 3,
-    direction: 1
+const cat = {
+  x: 100,
+  y: 120,
+  speed: 5.5,
+  direction: "S"
 };
 
 let nearestDoor = null;
+let lastTime = performance.now();
+let walkTick = 0;
+
+/*
+ * oneko's sprite sheet is a 256x128 image made of 32x32 cells.
+ * The positions below select the original directional frames.
+ */
+const sprites = {
+  idle: [[-3, -3]],
+  N: [[-1, -2], [-1, -3]],
+  NE: [[0, -2], [0, -3]],
+  E: [[-3, 0], [-3, -1]],
+  SE: [[-5, -1], [-5, -2]],
+  S: [[-6, -3], [-7, -2]],
+  SW: [[-5, -3], [-6, -1]],
+  W: [[-4, -2], [-4, -3]],
+  NW: [[-1, 0], [-1, -1]]
+};
 
 window.addEventListener("keydown", (event) => {
-    keys[event.key.toLowerCase()] = true;
+  const key = event.key.toLowerCase();
 
-    if (
-        event.key === "ArrowUp" ||
-        event.key === "ArrowDown" ||
-        event.key === "ArrowLeft" ||
-        event.key === "ArrowRight" ||
-        event.key === " "
-    ) {
-        event.preventDefault();
-    }
+  if (["w", "a", "s", "d", "enter"].includes(key)) {
+    event.preventDefault();
+  }
 
-    if (event.key === "Enter") {
-        enterNearestDoor();
-    }
+  keys.add(key);
+
+  if (key === "enter") {
+    enterNearestDoor();
+  }
 });
 
 window.addEventListener("keyup", (event) => {
-    keys[event.key.toLowerCase()] = false;
+  keys.delete(event.key.toLowerCase());
 });
 
 closeEvent.addEventListener("click", () => {
-    eventBox.classList.add("hidden");
+  eventBox.hidden = true;
 });
 
-function moveCat() {
-    let dx = 0;
-    let dy = 0;
+function readInput() {
+  let dx = 0;
+  let dy = 0;
 
-    if (keys["arrowleft"] || keys["a"]) dx -= 1;
-    if (keys["arrowright"] || keys["d"]) dx += 1;
-    if (keys["arrowup"] || keys["w"]) dy -= 1;
-    if (keys["arrowdown"] || keys["s"]) dy += 1;
+  if (keys.has("a")) dx -= 1;
+  if (keys.has("d")) dx += 1;
+  if (keys.has("w")) dy -= 1;
+  if (keys.has("s")) dy += 1;
 
-    const moving = dx !== 0 || dy !== 0;
-
-    if (!moving) {
-        cat.classList.remove("walking");
-        return;
-    }
-
-    cat.classList.add("walking");
-
-    // 대각선 이동이 더 빨라지지 않도록 정규화
-    const length = Math.hypot(dx, dy);
-
-    dx /= length;
-    dy /= length;
-
-    catState.x += dx * catState.speed;
-    catState.y += dy * catState.speed;
-
-    if (dx !== 0) {
-        catState.direction = dx > 0 ? 1 : -1;
-    }
-
-    const worldWidth = world.clientWidth;
-    const worldHeight = world.clientHeight;
-
-    const marginX = 45;
-    const marginY = 50;
-
-    catState.x = Math.max(marginX, Math.min(worldWidth - marginX, catState.x));
-    catState.y = Math.max(marginY, Math.min(worldHeight - marginY, catState.y));
+  return { dx, dy };
 }
 
-function updateCatVisual() {
-    cat.style.left = `${catState.x}px`;
-    cat.style.top = `${catState.y}px`;
+function updateMovement(dt) {
+  const { dx: rawX, dy: rawY } = readInput();
 
-    const scale = catState.direction === 1 ? 1 : -1;
-    cat.style.transform = `translate(-50%, -50%) scaleX(${scale})`;
+  if (rawX === 0 && rawY === 0) {
+    setSprite("idle", 0);
+    statusText.textContent = nearestDoor ? "ENTER" : "IDLE";
+    return;
+  }
+
+  const length = Math.hypot(rawX, rawY);
+  const dx = rawX / length;
+  const dy = rawY / length;
+
+  cat.x += dx * cat.speed * dt;
+  cat.y += dy * cat.speed * dt;
+
+  const half = 16;
+
+  cat.x = Math.max(half, Math.min(world.clientWidth - half, cat.x));
+  cat.y = Math.max(half, Math.min(world.clientHeight - half, cat.y));
+
+  if (dx > 0 && dy < 0) cat.direction = "NE";
+  else if (dx > 0 && dy > 0) cat.direction = "SE";
+  else if (dx < 0 && dy < 0) cat.direction = "NW";
+  else if (dx < 0 && dy > 0) cat.direction = "SW";
+  else if (dx > 0) cat.direction = "E";
+  else if (dx < 0) cat.direction = "W";
+  else if (dy < 0) cat.direction = "N";
+  else cat.direction = "S";
+
+  walkTick += dt;
+
+  const frames = sprites[cat.direction];
+  const frame = Math.floor(walkTick * 12) % frames.length;
+
+  setSprite(cat.direction, frame);
+
+  statusText.textContent = nearestDoor ? "ENTER" : "EXPLORE";
 }
 
-function getDoorCenter(door) {
-    const worldRect = world.getBoundingClientRect();
-    const rect = door.getBoundingClientRect();
+function setSprite(name, frame) {
+  const frames = sprites[name] || sprites.idle;
+  const [x, y] = frames[frame % frames.length];
 
-    return {
-        x: rect.left - worldRect.left + rect.width / 2,
-        y: rect.top - worldRect.top + rect.height / 2
-    };
+  neko.style.backgroundPosition = `${x * 32}px ${y * 32}px`;
 }
 
-function findNearestDoor() {
-    let closest = null;
-    let closestDistance = Infinity;
-
-    for (const door of doors) {
-        const center = getDoorCenter(door);
-
-        const distance = Math.hypot(
-            catState.x - center.x,
-            catState.y - center.y
-        );
-
-        if (distance < closestDistance) {
-            closestDistance = distance;
-            closest = door;
-        }
-    }
-
-    for (const door of doors) {
-        door.classList.remove("near");
-    }
-
-    if (closest && closestDistance < 100) {
-        closest.classList.add("near");
-        return closest;
-    }
-
-    return null;
+function render() {
+  neko.style.left = `${cat.x - 16}px`;
+  neko.style.top = `${cat.y - 16}px`;
 }
 
-function updateStatus() {
-    nearestDoor = findNearestDoor();
+function doorCenter(door) {
+  const worldRect = world.getBoundingClientRect();
+  const rect = door.getBoundingClientRect();
 
-    if (nearestDoor) {
-        statusText.textContent = "ENTER";
-    } else {
-        statusText.textContent = "EXPLORE";
+  return {
+    x: rect.left - worldRect.left + rect.width / 2,
+    y: rect.top - worldRect.top + rect.height / 2
+  };
+}
+
+function updateNearestDoor() {
+  let closest = null;
+  let distance = Infinity;
+
+  for (const door of doors) {
+    door.classList.remove("near");
+
+    const center = doorCenter(door);
+    const d = Math.hypot(cat.x - center.x, cat.y - center.y);
+
+    if (d < distance) {
+      distance = d;
+      closest = door;
     }
+  }
+
+  nearestDoor = distance <= 82 ? closest : null;
+
+  if (nearestDoor) {
+    nearestDoor.classList.add("near");
+  }
 }
 
 function enterNearestDoor() {
-    if (!nearestDoor) return;
+  if (!nearestDoor) return;
 
-    const eventType = nearestDoor.dataset.event;
+  switch (nearestDoor.dataset.event) {
+    case "about":
+      showEvent(
+        "ABOUT",
+        "The cat found the room where exercise040 begins."
+      );
+      break;
 
-    triggerEvent(eventType);
+    case "projects":
+      showEvent(
+        "PROJECTS",
+        "Behind this door are experiments, machine learning, quantitative research, and software projects.",
+        "../../index.html#projects"
+      );
+      break;
+
+    case "secret":
+      showEvent(
+        "???",
+        "You found something that was not supposed to be here."
+      );
+      break;
+  }
 }
 
-function triggerEvent(type) {
-    if (type === "about") {
-        eventContent.innerHTML = `
-            <h2 class="event-title">ABOUT</h2>
-            <p class="event-text">
-                The cat discovered the room where exercise040 begins.
-                Maybe there is more to this website than the page itself.
-            </p>
-        `;
-    }
+function showEvent(title, text, link = null) {
+  eventContent.innerHTML = `
+    <h2 class="event-title">${title}</h2>
+    <p class="event-text">${text}</p>
+    ${link ? `<a class="event-link" href="${link}">OPEN PROJECTS →</a>` : ""}
+  `;
 
-    if (type === "projects") {
-        eventContent.innerHTML = `
-            <h2 class="event-title">PROJECTS</h2>
-            <p class="event-text">
-                Behind this door are experiments, machine learning,
-                quantitative research, and software projects.
-            </p>
-            <a class="event-link" href="../../index.html#projects">
-                OPEN PROJECTS →
-            </a>
-        `;
-    }
-
-    if (type === "secret") {
-        eventContent.innerHTML = `
-            <h2 class="event-title">???</h2>
-            <p class="event-text">
-                You found something that was not supposed to be here.
-                The cat stares at the door for a moment.
-            </p>
-        `;
-    }
-
-    eventBox.classList.remove("hidden");
+  eventBox.hidden = false;
 }
 
-function gameLoop() {
-    moveCat();
-    updateCatVisual();
-    updateStatus();
+function loop(now) {
+  const dt = Math.min((now - lastTime) / 16.6667, 2);
+  lastTime = now;
 
-    requestAnimationFrame(gameLoop);
+  updateMovement(dt);
+  updateNearestDoor();
+  render();
+
+  requestAnimationFrame(loop);
 }
 
-updateCatVisual();
-gameLoop();
+setSprite("idle", 0);
+render();
+requestAnimationFrame(loop);

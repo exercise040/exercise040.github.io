@@ -1,73 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cat's Room — exercise040</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cat's Room — exercise040</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header class="topbar">
-        <a href="../../index.html" class="logo">exercise040</a>
-        <div id="status">EXPLORE</div>
-    </header>
+  <header>
+    <a href="../../index.html">exercise040</a>
+    <span id="status">IDLE</span>
+  </header>
 
-    <main id="world">
-        <div class="room-title">
-            <span>CAT'S ROOM</span>
-            <small>find the right door</small>
-        </div>
+  <main id="world">
+    <div class="room-label">
+      CAT'S ROOM
+      <small>W A S D — MOVE</small>
+    </div>
 
-        <div id="cat" aria-label="black cat">
-            <div class="cat-shadow"></div>
-            <div class="cat-tail"></div>
+    <!-- Original oneko sprite sheet supplied by the user -->
+    <div id="oneko" aria-hidden="true"></div>
 
-            <div class="cat-body">
-                <div class="cat-leg back-leg"></div>
-                <div class="cat-leg front-leg"></div>
+    <div class="door" data-event="about" style="left:18%;top:70%;">
+      <div class="door-body"></div>
+      <span>ABOUT</span>
+    </div>
 
-                <div class="cat-head">
-                    <div class="ear left-ear"></div>
-                    <div class="ear right-ear"></div>
-                    <div class="eye left-eye"></div>
-                    <div class="eye right-eye"></div>
-                    <div class="nose"></div>
-                </div>
-            </div>
-        </div>
+    <div class="door" data-event="projects" style="left:50%;top:24%;">
+      <div class="door-body"></div>
+      <span>PROJECTS</span>
+    </div>
 
-        <div class="door" data-event="about" style="left:18%; top:70%;">
-            <div class="door-frame">
-                <div class="door-panel"></div>
-                <span>ABOUT</span>
-            </div>
-        </div>
+    <div class="door" data-event="secret" style="left:82%;top:70%;">
+      <div class="door-body secret">?</div>
+      <span>SECRET</span>
+    </div>
 
-        <div class="door" data-event="projects" style="left:50%; top:24%;">
-            <div class="door-frame">
-                <div class="door-panel"></div>
-                <span>PROJECTS</span>
-            </div>
-        </div>
+    <div id="event-box" hidden>
+      <button id="close-event" type="button" aria-label="close">×</button>
+      <div id="event-content"></div>
+    </div>
+  </main>
 
-        <div class="door" data-event="secret" style="left:82%; top:70%;">
-            <div class="door-frame secret-door">
-                <div class="door-panel"></div>
-                <span>?</span>
-            </div>
-        </div>
+  <footer>
+    <span>W A S D — MOVE</span>
+    <span>ENTER — OPEN DOOR</span>
+  </footer>
 
-        <div id="event-box" class="hidden">
-            <button id="close-event" aria-label="close">×</button>
-            <div id="event-content"></div>
-        </div>
-    </main>
-
-    <footer>
-        <span>WASD / ARROW KEYS — MOVE</span>
-        <span>ENTER — ENTER DOOR</span>
-    </footer>
-
-    <script src="game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
