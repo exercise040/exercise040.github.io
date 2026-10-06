@@ -5,11 +5,11 @@
  *
  * Behaviors:
  * - Starts in the center
- * - Follows the mouse slowly (about half the previous speed)
+ * - Moves only toward the user's click position
  * - Sleeps after inactivity
- * - Wakes when the mouse moves
+ * - Wakes when the user clicks
  * - Click causes a reaction
- * - Repeated clicks trigger the face-washing animation
+ * - Clicking the cat makes it annoyed; repeated clicks trigger face-washing
  * - Running animation uses the original 8 directional sprites
  * - ENTER opens a nearby door
  */
@@ -34,11 +34,10 @@ const cat = {
   direction: "S"
 };
 
-const mouse = {
+const target = {
   x: 0,
   y: 0,
-  active: false,
-  moved: false
+  active: false
 };
 
 let nearestDoor = null;
@@ -54,6 +53,7 @@ let walkingTimer = 0;
 
 let clickTimes = [];
 let clickReactionUntil = 0;
+let lastClickTime = performance.now();
 
 const SPRITE = 32;
 
@@ -162,40 +162,19 @@ function centerCatAndTarget() {
   cat.x = world.clientWidth / 2;
   cat.y = world.clientHeight / 2;
 
-  mouse.x = cat.x;
-  mouse.y = cat.y;
+  target.x = cat.x;
+  target.y = cat.y;
 }
 
 window.addEventListener("resize", () => {
-  if (!mouse.moved) {
-    centerCatAndTarget();
-  }
-
   clampCat();
-});
 
-world.addEventListener("mousemove", (event) => {
-  const rect = world.getBoundingClientRect();
-
-  mouse.x = event.clientX - rect.left;
-  mouse.y = event.clientY - rect.top;
-
-  mouse.active = true;
-  mouse.moved = true;
-
-  /*
-   * Any genuine mouse movement wakes the cat.
-   */
-  if (idleAnimation) {
-    resetIdleAnimation();
+  if (!target.active) {
+    target.x = cat.x;
+    target.y = cat.y;
   }
-
-  idleTime = 0;
 });
 
-world.addEventListener("mouseleave", () => {
-  mouse.active = false;
-});
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -212,37 +191,49 @@ document.addEventListener("keydown", (event) => {
 world.addEventListener("click", (event) => {
   const rect = world.getBoundingClientRect();
 
-  mouse.x = event.clientX - rect.left;
-  mouse.y = event.clientY - rect.top;
-  mouse.active = true;
-  mouse.moved = true;
+  const clickX = event.clientX - rect.left;
+  const clickY = event.clientY - rect.top;
 
-  idleTime = 0;
+  const distanceFromCat = Math.hypot(
+    clickX - cat.x,
+    clickY - cat.y
+  );
 
   const now = performance.now();
 
-  clickTimes = clickTimes.filter(
-    (time) => now - time < 4500
-  );
+  idleTime = 0;
+  lastClickTime = now;
 
-  clickTimes.push(now);
-
-  if (clickTimes.length >= 5) {
-    clickTimes = [];
-    startIdleAnimation("scratchSelf");
+  // Clicking directly on the cat makes it annoyed.
+  if (distanceFromCat <= 24) {
     clickReactionUntil = now + 1200;
+
+    clickTimes = clickTimes.filter(
+      (time) => now - time < 4500
+    );
+    clickTimes.push(now);
+
+    if (clickTimes.length >= 5) {
+      clickTimes = [];
+      startIdleAnimation("scratchSelf");
+      clickReactionUntil = now + 1200;
+      return;
+    }
+
+    idleAnimation = null;
+    idleAnimationFrame = 0;
+    setSprite("alert", 0);
+    setState("귀찮아한다");
     return;
   }
 
-  /*
-   * A single click produces the alert reaction.
-   * The actual oneko alert sprite is one frame.
-   */
-  idleAnimation = null;
-  idleAnimationFrame = 0;
-  setSprite("alert", 0);
-  clickReactionUntil = now + 450;
-  setState("귀찮아한다");
+  // Clicking elsewhere creates a new destination.
+  target.x = clickX;
+  target.y = clickY;
+  target.active = true;
+
+  resetIdleAnimation();
+  setState("이동한다");
 });
 
 closeEvent.addEventListener("click", () => {
@@ -280,8 +271,8 @@ function updateMovement(dt) {
     return;
   }
 
-  const dx = mouse.x - cat.x;
-  const dy = mouse.y - cat.y;
+  const dx = target.x - cat.x;
+  const dy = target.y - cat.y;
   const distance = Math.hypot(dx, dy);
 
   /*
@@ -289,18 +280,22 @@ function updateMovement(dt) {
    */
   const stopDistance = 18;
 
-  if (!mouse.active || distance <= stopDistance) {
+  if (!target.active || distance <= stopDistance) {
+    if (target.active && distance <= stopDistance) {
+      target.active = false;
+    }
+
     idleTime += dt;
 
-    /*
-     * After a few seconds of doing nothing, begin the original
-     * oneko-style idle/sleep behavior.
-     */
-    if (idleTime > 5) {
-      maybeStartIdleAnimation();
+    // Four seconds without a new click -> sleep.
+    if (idleTime >= 4) {
+      if (!idleAnimation) {
+        startIdleAnimation("sleeping");
+      }
+      updateIdleAnimation();
     } else {
       setSprite("idle", 0);
-      setState("귀찮아한다");
+      setState("가만히 있다");
     }
 
     return;
@@ -332,7 +327,7 @@ function updateMovement(dt) {
    */
   walkingTimer += dt;
 
-  if (walkingTimer >= 0.12) {
+  if (walkingTimer >= 2) {
     walkingTimer = 0;
     walkingFrame++;
   }
@@ -371,17 +366,7 @@ function maybeStartIdleAnimation() {
    */
   if (idleAnimation) return;
 
-  /*
-   * Randomly choose sleeping or face washing.
-   * Sleeping is much more common.
-   */
-  const roll = Math.random();
-
-  if (roll < 0.82) {
-    startIdleAnimation("sleeping");
-  } else {
-    startIdleAnimation("scratchSelf");
-  }
+  startIdleAnimation("sleeping");
 }
 
 function startIdleAnimation(type) {
@@ -417,14 +402,7 @@ function updateIdleAnimation() {
 
     idleAnimationFrame++;
 
-    /*
-     * Keep sleeping for a while, then wake naturally.
-     */
-    if (idleAnimationFrame > 192) {
-      resetIdleAnimation();
-      idleTime = 0;
-    }
-
+    // Stay asleep until the user clicks again.
     return;
   }
 
