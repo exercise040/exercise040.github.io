@@ -1,7 +1,18 @@
+
 {
   "name": "exercise040-github-io",
+  "main": "src/worker.js",
   "compatibility_date": "2026-09-29",
   "assets": {
-    "directory": "."
-  }
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "site-visits",
+      "database_id": "3949fdca-cb11-4719-bb7b-7c1263a84fb3"
+    }
+  ]
 }
