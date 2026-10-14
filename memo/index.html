@@ -1,0 +1,581 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memo — Exercise040</title>
+    <link rel="stylesheet" href="../style.css">
+
+    <style>
+        .memo-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin: 24px 0;
+            flex-wrap: wrap;
+        }
+
+        .memo-button {
+            padding: 10px 16px;
+            border: 1px solid currentColor;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .memo-detail,
+        .memo-form {
+            margin-top: 24px;
+            padding: 24px;
+            border: 1px solid #8885;
+        }
+
+        .memo-input,
+        .memo-textarea {
+            display: block;
+            box-sizing: border-box;
+            width: 100%;
+            margin: 8px 0 16px;
+            padding: 12px;
+            border: 1px solid #888;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+        }
+
+        .memo-textarea {
+            min-height: 180px;
+            resize: vertical;
+        }
+
+        .memo-body {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            line-height: 1.8;
+            margin: 24px 0;
+        }
+
+        .memo-meta {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .memo-comment {
+            border-top: 1px solid #8885;
+            padding: 14px 0;
+        }
+
+        .memo-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <nav class="nav">
+            <a href="../" class="logo">exercise040</a>
+
+            <div class="nav-links">
+                <a href="./">Memo</a>
+                <a href="../#about">About</a>
+                <a href="../#projects">Projects</a>
+                <a href="../games/">Games</a>
+                <a href="../#notes">Notes</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="section">
+            <div class="section-title">
+                <span>01</span>
+                <h2>Memo</h2>
+            </div>
+
+            <p>Development notes, ideas, and things worth remembering.</p>
+
+            <div class="memo-toolbar">
+                <span id="post-count">Loading posts...</span>
+
+                <div class="memo-actions">
+                    <button class="memo-button" id="admin-button">
+                        Write / Admin
+                    </button>
+
+                    <button class="memo-button" id="new-post-button" hidden>
+                        + New post
+                    </button>
+
+                    <button class="memo-button" id="back-button" hidden>
+                        ← Back to list
+                    </button>
+                </div>
+            </div>
+
+            <div id="post-list" class="project-grid"></div>
+
+            <section id="editor" class="memo-form" hidden>
+                <h3 id="editor-heading">New post</h3>
+
+                <label for="post-title">Title</label>
+                <input
+                    class="memo-input"
+                    id="post-title"
+                    maxlength="200"
+                    required
+                >
+
+                <label for="post-body">Content</label>
+                <textarea
+                    class="memo-textarea"
+                    id="post-body"
+                    maxlength="20000"
+                    required
+                ></textarea>
+
+                <div class="memo-actions">
+                    <button class="memo-button" id="save-post-button">
+                        Save post
+                    </button>
+
+                    <button class="memo-button" id="cancel-editor-button">
+                        Cancel
+                    </button>
+                </div>
+            </section>
+
+            <section id="post-detail" class="memo-detail" hidden></section>
+
+            <p id="status-message" role="status"></p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div><strong>exercise040</strong></div>
+
+        <div class="footer-links">
+            <a
+                href="https://github.com/exercise040"
+                target="_blank"
+                rel="noopener noreferrer"
+            >GitHub</a>
+        </div>
+
+        <p>© 2026 exercise040</p>
+    </footer>
+
+    <script>
+        const API = "../api";
+        const $ = (selector) => document.querySelector(selector);
+
+        let adminPassword = "";
+        let editingPostId = null;
+        let currentPostId = null;
+
+        const postList = $("#post-list");
+        const editor = $("#editor");
+        const detail = $("#post-detail");
+        const statusMessage = $("#status-message");
+
+        function escapeHTML(value) {
+            return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[char]);
+        }
+
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString("ko-KR", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit"
+            });
+        }
+
+        async function api(path, options = {}) {
+            const headers = {
+                "Content-Type": "application/json",
+                ...(options.headers || {})
+            };
+
+            if (adminPassword) {
+                headers["X-Admin-Password"] = adminPassword;
+            }
+
+            const response = await fetch(API + path, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.error || "Request failed.");
+            }
+
+            return data;
+        }
+
+        function updateAdminUI() {
+            $("#new-post-button").hidden = !adminPassword;
+            $("#admin-button").textContent =
+                adminPassword ? "Admin enabled · Log out" : "Write / Admin";
+        }
+
+        async function enableAdmin(password) {
+            const response = await fetch(`${API}/admin/verify`, {
+                method: "POST",
+                headers: {
+                    "X-Admin-Password": password
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Incorrect password.");
+            }
+
+            adminPassword = password;
+            sessionStorage.setItem("memoAdminPassword", password);
+            updateAdminUI();
+        }
+
+        function disableAdmin() {
+            adminPassword = "";
+            sessionStorage.removeItem("memoAdminPassword");
+            updateAdminUI();
+        }
+
+        function showList() {
+            currentPostId = null;
+            editingPostId = null;
+
+            editor.hidden = true;
+            detail.hidden = true;
+            postList.hidden = false;
+            $("#back-button").hidden = true;
+
+            loadPosts();
+        }
+
+        async function loadPosts() {
+            postList.innerHTML = "";
+            $("#post-count").textContent = "Loading...";
+
+            try {
+                const posts = await api("/posts");
+                $("#post-count").textContent = `${posts.length} posts`;
+
+                if (posts.length === 0) {
+                    postList.innerHTML = "<p>No memos yet.</p>";
+                    return;
+                }
+
+                postList.innerHTML = posts.map((post, index) => `
+                    <a href="#post-${post.id}"
+                       class="project-card"
+                       data-post-id="${post.id}">
+                        <span class="project-number">
+                            ${String(index + 1).padStart(2, "0")}
+                        </span>
+
+                        <h3>${escapeHTML(post.title)}</h3>
+
+                        <p>${escapeHTML(formatDate(post.created_at))}</p>
+
+                        <p>${post.comment_count} comments</p>
+
+                        <span class="project-arrow">↗</span>
+                    </a>
+                `).join("");
+
+                postList.querySelectorAll("[data-post-id]")
+                    .forEach((card) => {
+                        card.addEventListener("click", (event) => {
+                            event.preventDefault();
+                            openPost(card.dataset.postId);
+                        });
+                    });
+            } catch (error) {
+                $("#post-count").textContent = "Could not load posts.";
+                statusMessage.textContent = error.message;
+            }
+        }
+
+        async function openPost(id) {
+            postList.hidden = true;
+            editor.hidden = true;
+            detail.hidden = false;
+            $("#back-button").hidden = false;
+            detail.innerHTML = "<p>Loading...</p>";
+
+            try {
+                const data = await api(`/posts/${id}`);
+                currentPostId = Number(id);
+
+                const post = data.post;
+                const comments = data.comments;
+
+                detail.innerHTML = `
+                    <h2>${escapeHTML(post.title)}</h2>
+
+                    <p class="memo-meta">
+                        Published ${escapeHTML(formatDate(post.created_at))}
+                        ${post.updated_at !== post.created_at
+                            ? " · Updated " + escapeHTML(formatDate(post.updated_at))
+                            : ""}
+                    </p>
+
+                    <div class="memo-body">${escapeHTML(post.body)}</div>
+
+                    ${adminPassword ? `
+                        <div class="memo-actions">
+                            <button class="memo-button" id="edit-post-button">
+                                Edit
+                            </button>
+
+                            <button class="memo-button" id="delete-post-button">
+                                Delete
+                            </button>
+                        </div>
+                    ` : ""}
+
+                    <hr>
+
+                    <h3>Comments (${comments.length})</h3>
+
+                    <div id="comments">
+                        ${comments.map((comment) => `
+                            <div class="memo-comment">
+                                <strong>${escapeHTML(comment.author)}</strong>
+
+                                <p class="memo-meta">
+                                    ${escapeHTML(formatDate(comment.created_at))}
+                                </p>
+
+                                <p class="memo-body">${escapeHTML(comment.body)}</p>
+
+                                ${adminPassword ? `
+                                    <button class="memo-button"
+                                        data-delete-comment="${comment.id}">
+                                        Delete comment
+                                    </button>
+                                ` : ""}
+                            </div>
+                        `).join("") || "<p>No comments yet.</p>"}
+                    </div>
+
+                    <form id="comment-form">
+                        <h3>Leave a comment</h3>
+
+                        <label for="comment-author">Name</label>
+                        <input class="memo-input"
+                            id="comment-author"
+                            maxlength="40"
+                            placeholder="Anonymous">
+
+                        <label for="comment-body">Comment</label>
+                        <textarea class="memo-textarea"
+                            id="comment-body"
+                            maxlength="2000"
+                            required></textarea>
+
+                        <button class="memo-button" type="submit">
+                            Submit comment
+                        </button>
+                    </form>
+                `;
+
+                $("#comment-form").addEventListener("submit", submitComment);
+
+                $("#edit-post-button")?.addEventListener("click", () => {
+                    startEditing(post);
+                });
+
+                $("#delete-post-button")?.addEventListener("click", deletePost);
+
+                detail.querySelectorAll("[data-delete-comment]")
+                    .forEach((button) => {
+                        button.addEventListener("click", async () => {
+                            if (!confirm("Delete this comment?")) return;
+
+                            try {
+                                await api(
+                                    `/comments/${button.dataset.deleteComment}`,
+                                    { method: "DELETE" }
+                                );
+
+                                await openPost(id);
+                            } catch (error) {
+                                statusMessage.textContent = error.message;
+                            }
+                        });
+                    });
+            } catch (error) {
+                detail.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
+            }
+        }
+
+        async function submitComment(event) {
+            event.preventDefault();
+
+            const author = $("#comment-author").value.trim();
+            const body = $("#comment-body").value.trim();
+
+            if (!body) return;
+
+            try {
+                await api(`/posts/${currentPostId}/comments`, {
+                    method: "POST",
+                    body: JSON.stringify({ author, body })
+                });
+
+                await openPost(currentPostId);
+                statusMessage.textContent = "Comment added.";
+            } catch (error) {
+                statusMessage.textContent = error.message;
+            }
+        }
+
+        function startNewPost() {
+            editingPostId = null;
+
+            $("#editor-heading").textContent = "New post";
+            $("#post-title").value = "";
+            $("#post-body").value = "";
+
+            postList.hidden = true;
+            detail.hidden = true;
+            editor.hidden = false;
+            $("#back-button").hidden = false;
+        }
+
+        function startEditing(post) {
+            editingPostId = post.id;
+
+            $("#editor-heading").textContent = "Edit post";
+            $("#post-title").value = post.title;
+            $("#post-body").value = post.body;
+
+            detail.hidden = true;
+            editor.hidden = false;
+        }
+
+        async function savePost() {
+            const title = $("#post-title").value.trim();
+            const body = $("#post-body").value.trim();
+
+            if (!title || !body) {
+                statusMessage.textContent = "Enter a title and content.";
+                return;
+            }
+
+            try {
+                if (editingPostId) {
+                    await api(`/posts/${editingPostId}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ title, body })
+                    });
+
+                    await openPost(editingPostId);
+                } else {
+                    const result = await api("/posts", {
+                        method: "POST",
+                        body: JSON.stringify({ title, body })
+                    });
+
+                    await openPost(result.id);
+                }
+
+                statusMessage.textContent = "Post saved.";
+            } catch (error) {
+                statusMessage.textContent = error.message;
+            }
+        }
+
+        async function deletePost() {
+            if (
+                !currentPostId ||
+                !confirm("Delete this post and its comments?")
+            ) {
+                return;
+            }
+
+            try {
+                await api(`/posts/${currentPostId}`, {
+                    method: "DELETE"
+                });
+
+                showList();
+                statusMessage.textContent = "Post deleted.";
+            } catch (error) {
+                statusMessage.textContent = error.message;
+            }
+        }
+
+        $("#admin-button").addEventListener("click", async () => {
+            if (adminPassword) {
+                disableAdmin();
+                statusMessage.textContent = "Logged out.";
+
+                if (currentPostId) {
+                    await openPost(currentPostId);
+                }
+                return;
+            }
+
+            const password = prompt("Enter the memo admin password:");
+            if (!password) return;
+
+            try {
+                await enableAdmin(password);
+                statusMessage.textContent = "Admin mode enabled.";
+
+                if (currentPostId) {
+                    await openPost(currentPostId);
+                }
+            } catch (error) {
+                disableAdmin();
+                statusMessage.textContent = error.message;
+                alert("Incorrect password.");
+            }
+        });
+
+        $("#new-post-button").addEventListener("click", startNewPost);
+        $("#save-post-button").addEventListener("click", savePost);
+        $("#cancel-editor-button").addEventListener("click", showList);
+        $("#back-button").addEventListener("click", showList);
+
+        async function init() {
+            const savedPassword =
+                sessionStorage.getItem("memoAdminPassword");
+
+            if (savedPassword) {
+                try {
+                    await enableAdmin(savedPassword);
+                } catch {
+                    disableAdmin();
+                }
+            }
+
+            updateAdminUI();
+            loadPosts();
+        }
+
+        init();
+    </script>
+</body>
+</html>
